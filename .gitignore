@@ -1,0 +1,7 @@
+/.build/
+/dist/
+/outputs/
+/work/
+.codex/
+.vscode/
+.DS_Store
