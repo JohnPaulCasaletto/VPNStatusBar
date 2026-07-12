@@ -11,9 +11,9 @@ enum VPNState: Equatable {
     var systemImage: String {
         switch self {
         case .notConfigured: "questionmark.folder"
-        case .checking: "ellipsis.circle"
-        case .up: "lock.shield.fill"
-        case .down: "lock.slash"
+        case .checking: "bolt.horizontal"
+        case .up: "bolt.horizontal.fill"
+        case .down: "bolt.horizontal"
         case .unavailable: "exclamationmark.triangle"
         }
     }

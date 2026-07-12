@@ -63,11 +63,6 @@ struct VPNStatusMenu: View {
 
         Divider()
 
-        Button("Refresh") {
-            store.refresh()
-        }
-        .keyboardShortcut("r")
-
         Toggle(
             "Launch at Login",
             isOn: Binding(

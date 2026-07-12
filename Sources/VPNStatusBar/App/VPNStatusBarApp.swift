@@ -13,7 +13,9 @@ struct VPNStatusBarApp: App {
                 launchAtLoginStore: launchAtLoginStore
             )
         } label: {
-            Label(statusStore.state.accessibilityLabel, systemImage: statusStore.state.systemImage)
+            Image(systemName: statusStore.state.systemImage)
+                .font(.system(size: 16, weight: .medium))
+                .accessibilityLabel(statusStore.state.accessibilityLabel)
         }
     }
 }
