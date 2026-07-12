@@ -104,9 +104,16 @@ final class VPNStatusStore: ObservableObject {
                 try await controlService.setEnabled(enabled, configURL: configURL)
                 self?.refresh()
             } catch {
-                self?.actionError = error.localizedDescription
+                let message = error.localizedDescription
+                self?.actionError = message
+                self?.configurationUI.showVPNCommandFailed(message)
             }
             self?.actionInProgress = false
         }
+    }
+
+    func showLastActionError() {
+        guard let actionError else { return }
+        configurationUI.showVPNCommandFailed(actionError)
     }
 }

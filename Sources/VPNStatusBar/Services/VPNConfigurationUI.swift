@@ -34,4 +34,18 @@ struct VPNConfigurationUI {
         alert.addButton(withTitle: "OK")
         alert.runModal()
     }
+
+    func showVPNCommandFailed(_ message: String) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Couldn’t change the VPN"
+        alert.informativeText = message
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Copy Error")
+
+        if alert.runModal() == .alertSecondButtonReturn {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(message, forType: .string)
+        }
+    }
 }

@@ -52,8 +52,10 @@ struct VPNStatusMenu: View {
             }
         }
 
-        if let actionError = store.actionError {
-            Label(shortMessage(actionError), systemImage: "exclamationmark.triangle")
+        if store.actionError != nil {
+            Button("Show Last Error…") {
+                store.showLastActionError()
+            }
         }
 
         Divider()
