@@ -12,8 +12,10 @@ WORK_DIR="$ROOT_DIR/work"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 APP_CONTENTS="$APP_BUNDLE/Contents"
 APP_MACOS="$APP_CONTENTS/MacOS"
+APP_RESOURCES="$APP_CONTENTS/Resources"
 APP_BINARY="$APP_MACOS/$APP_NAME"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
+APP_ICON="$ROOT_DIR/Resources/AppIcon.icns"
 SDKROOT="${SDKROOT:-$(xcrun --sdk macosx --show-sdk-path)}"
 
 export SDKROOT
@@ -35,8 +37,9 @@ swift build "${SWIFT_OPTIONS[@]}"
 BUILD_BINARY="$(swift build "${SWIFT_OPTIONS[@]}" --show-bin-path)/$APP_NAME"
 
 rm -rf "$APP_BUNDLE"
-mkdir -p "$APP_MACOS"
+mkdir -p "$APP_MACOS" "$APP_RESOURCES"
 cp "$BUILD_BINARY" "$APP_BINARY"
+cp "$APP_ICON" "$APP_RESOURCES/AppIcon.icns"
 chmod +x "$APP_BINARY"
 
 cat >"$INFO_PLIST" <<PLIST
@@ -48,6 +51,8 @@ cat >"$INFO_PLIST" <<PLIST
   <string>$APP_NAME</string>
   <key>CFBundleIdentifier</key>
   <string>$BUNDLE_ID</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon.icns</string>
   <key>CFBundleName</key>
   <string>$APP_NAME</string>
   <key>CFBundlePackageType</key>

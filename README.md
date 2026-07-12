@@ -1,5 +1,7 @@
 # VPNStatusBar
 
+<img src="Resources/AppIcon.png" alt="VPNStatusBar app icon" width="160">
+
 VPNStatusBar is a small macOS menu-bar app for monitoring and controlling a
 WireGuard tunnel. It shows whether your tunnel is connected and lets you turn
 it on or off without opening Terminal.

@@ -44,8 +44,10 @@ WORK_DIR="$ROOT_DIR/work"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 APP_CONTENTS="$APP_BUNDLE/Contents"
 APP_MACOS="$APP_CONTENTS/MacOS"
+APP_RESOURCES="$APP_CONTENTS/Resources"
 APP_BINARY="$APP_MACOS/$APP_NAME"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
+APP_ICON="$ROOT_DIR/Resources/AppIcon.icns"
 ARCHIVE="$OUTPUT_DIR/$APP_NAME.zip"
 ARM64_SCRATCH="$WORK_DIR/release-arm64"
 X86_64_SCRATCH="$WORK_DIR/release-x86_64"
@@ -86,8 +88,9 @@ ARM64_BINARY="$ARM64_SCRATCH/arm64-apple-macosx/release/$APP_NAME"
 X86_64_BINARY="$X86_64_SCRATCH/x86_64-apple-macosx/release/$APP_NAME"
 
 rm -rf "$APP_BUNDLE"
-mkdir -p "$APP_MACOS"
+mkdir -p "$APP_MACOS" "$APP_RESOURCES"
 /usr/bin/lipo -create "$ARM64_BINARY" "$X86_64_BINARY" -output "$APP_BINARY"
+cp "$APP_ICON" "$APP_RESOURCES/AppIcon.icns"
 chmod +x "$APP_BINARY"
 
 cat >"$INFO_PLIST" <<PLIST
@@ -99,6 +102,8 @@ cat >"$INFO_PLIST" <<PLIST
   <string>$APP_NAME</string>
   <key>CFBundleIdentifier</key>
   <string>$BUNDLE_ID</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon.icns</string>
   <key>CFBundleName</key>
   <string>$APP_NAME</string>
   <key>CFBundlePackageType</key>
