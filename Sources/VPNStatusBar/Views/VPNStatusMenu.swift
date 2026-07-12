@@ -3,6 +3,7 @@ import SwiftUI
 
 struct VPNStatusMenu: View {
     @ObservedObject var store: VPNStatusStore
+    @ObservedObject var launchAtLoginStore: LaunchAtLoginStore
 
     var body: some View {
         switch store.state {
@@ -18,18 +19,6 @@ struct VPNStatusMenu: View {
         case let .unavailable(message):
             Label("Status unavailable", systemImage: "exclamationmark.triangle")
             Text(message)
-        }
-
-        Divider()
-
-        if let configFileName = store.configFileName {
-            Label(shortMessage(configFileName), systemImage: "doc")
-        } else {
-            Label("No config selected", systemImage: "doc.badge.plus")
-        }
-
-        Button("Choose Config…") {
-            store.chooseConfiguration()
         }
 
         Divider()
@@ -60,10 +49,33 @@ struct VPNStatusMenu: View {
 
         Divider()
 
+        if let configFileName = store.configFileName {
+            Label(shortMessage(configFileName), systemImage: "doc")
+        } else {
+            Label("No config selected", systemImage: "doc.badge.plus")
+        }
+
+        Button("Choose Config…") {
+            store.chooseConfiguration()
+        }
+
+        Divider()
+
         Button("Refresh") {
             store.refresh()
         }
         .keyboardShortcut("r")
+
+        Toggle(
+            "Launch at Login",
+            isOn: Binding(
+                get: { launchAtLoginStore.isEnabled },
+                set: { launchAtLoginStore.setEnabled($0) }
+            )
+        )
+        .onAppear {
+            launchAtLoginStore.refresh()
+        }
 
         Divider()
 

@@ -12,6 +12,7 @@ it on or off without opening Terminal.
 - Enable or disable WireGuard from the menu bar
 - Select any WireGuard `.conf` file
 - Remembers the selected configuration between launches
+- Optional launch at login
 - Runs entirely on your Mac
 
 ## Requirements
