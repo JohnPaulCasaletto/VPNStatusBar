@@ -3,30 +3,23 @@
 <img src="Resources/AppIcon.png" alt="VPNStatusBar app icon" width="160">
 
 VPNStatusBar is a small macOS menu-bar app for monitoring and controlling a
-WireGuard tunnel. It shows whether your tunnel is connected and lets you turn
-it on or off without opening Terminal.
+a macOS-managed VPN. It shows whether your VPN is connected and lets you turn
+it on or off without opening System Settings.
 
 ## Features
 
 - Connected, disconnected, and not-configured menu-bar icons
-- Enable or disable WireGuard from the menu bar
-- Select any WireGuard `.conf` file
-- Remembers the selected configuration between launches
+- Enable or disable a macOS-managed VPN from the menu bar
+- Select from the VPNs already registered with macOS
+- Remembers the selected VPN between launches
+- No administrator password required for normal VPN toggles
 - Optional launch at login
 - Runs entirely on your Mac
 
 ## Requirements
 
 - macOS 13 or later
-- A WireGuard configuration file
-- The WireGuard command-line tools installed with Homebrew:
-
-  ```sh
-  brew install wireguard-tools
-  ```
-
-VPNStatusBar currently detects Homebrew installations of `wg-quick` in
-`/opt/homebrew/bin` and `/usr/local/bin`.
+- A VPN registered with macOS through System Settings or a VPN app
 
 ## Download and install
 
@@ -51,13 +44,11 @@ a future release.
 ## Usage
 
 1. Click the VPNStatusBar icon in the menu bar.
-2. Choose **Choose Config…** and select your WireGuard `.conf` file.
+2. Choose **Choose VPN…** and select a managed VPN.
 3. Choose **Enable VPN** or **Disable VPN**.
-4. Approve the macOS administrator prompt.
 
-The menu-bar icon indicates whether the configured WireGuard interface is up
-or down. If you try to enable it before selecting a configuration, the app
-will prompt you to choose one.
+The menu-bar icon reflects the connection state reported by macOS. If you try
+to enable it before selecting a VPN, the app will prompt you to choose one.
 
 ## Build from source
 
@@ -72,12 +63,10 @@ it. The build script uses the active macOS SDK reported by `xcrun`.
 
 ## Privacy and security
 
-VPNStatusBar does not copy or upload your WireGuard configuration. The path to
-the selected file is stored locally in macOS user defaults. Tunnel commands
-run locally using `wg-quick`, and macOS displays its standard administrator
-authorization prompt when the tunnel is changed.
+VPNStatusBar stores the selected managed VPN's system identifier locally in
+macOS user defaults. It does not copy or upload VPN configuration or keys.
+Connection changes are sent to macOS using the built-in `scutil` command.
 
 ## Current limitations
 
-- `wg-quick` must be installed through Homebrew in one of the detected paths.
 - The downloadable app is not yet Developer ID signed or notarized.

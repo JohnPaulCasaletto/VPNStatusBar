@@ -4,7 +4,7 @@ import Foundation
 enum VPNState: Equatable {
     case notConfigured
     case checking
-    case up(address: String)
+    case up(address: String?)
     case down
     case unavailable(message: String)
 
@@ -34,17 +34,19 @@ final class VPNStatusStore: ObservableObject {
     @Published private(set) var state: VPNState = .checking
     @Published private(set) var actionInProgress = false
     @Published private(set) var actionError: String?
-    @Published private(set) var configURL: URL?
+    @Published private(set) var selectedService: ManagedVPNService?
 
     private let service: VPNStatusService
     private let controlService: VPNControlService
-    private let configurationUI: VPNConfigurationUI
+    private let discovery: ManagedVPNServiceDiscovery
+    private let selectionUI: VPNSelectionUI
     private let defaults: UserDefaults
     private var timer: Timer?
-    private let configPathKey = "wireGuardConfigPath"
+    private let serviceIDKey = "managedVPNServiceID"
+    private let legacyConfigPathKey = "wireGuardConfigPath"
 
-    var configFileName: String? {
-        configURL?.lastPathComponent
+    var selectedServiceName: String? {
+        selectedService?.name
     }
 
     init(
@@ -54,17 +56,18 @@ final class VPNStatusStore: ObservableObject {
     ) {
         self.service = service
         self.controlService = controlService
-        self.configurationUI = VPNConfigurationUI()
+        self.discovery = ManagedVPNServiceDiscovery()
+        self.selectionUI = VPNSelectionUI()
         self.defaults = defaults
-        if let path = defaults.string(forKey: configPathKey) {
-            configURL = URL(fileURLWithPath: path)
-        }
+        loadSelection()
         refresh()
-        timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+        let refreshTimer = Timer(timeInterval: 2, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.refresh()
             }
         }
+        RunLoop.main.add(refreshTimer, forMode: .common)
+        timer = refreshTimer
     }
 
     deinit {
@@ -72,28 +75,35 @@ final class VPNStatusStore: ObservableObject {
     }
 
     func refresh() {
-        state = service.currentStatus(configURL: configURL)
+        state = service.currentStatus(serviceID: selectedService?.id)
     }
 
-    func chooseConfiguration() {
-        guard let selectedURL = configurationUI.chooseConfig(startingAt: configURL) else { return }
-
+    func chooseService() {
         do {
-            let contents = try String(contentsOf: selectedURL, encoding: .utf8)
-            _ = try WireGuardConfig.interfaceAddresses(in: contents)
-            configURL = selectedURL
-            defaults.set(selectedURL.path, forKey: configPathKey)
+            let services = try discovery.availableServices()
+            guard !services.isEmpty else {
+                selectionUI.showNoServices()
+                return
+            }
+            guard let selected = selectionUI.chooseService(
+                from: services,
+                selectedID: selectedService?.id
+            ) else { return }
+
+            selectedService = selected
+            defaults.set(selected.id, forKey: serviceIDKey)
+            defaults.removeObject(forKey: legacyConfigPathKey)
             actionError = nil
             refresh()
         } catch {
-            configurationUI.showInvalidConfiguration(error.localizedDescription)
+            selectionUI.showSelectionFailed(error.localizedDescription)
         }
     }
 
     func setVPNEnabled(_ enabled: Bool) {
         guard !actionInProgress else { return }
-        guard let configURL else {
-            configurationUI.showConfigurationRequired()
+        guard let selectedService else {
+            selectionUI.showSelectionRequired()
             return
         }
         actionInProgress = true
@@ -101,12 +111,12 @@ final class VPNStatusStore: ObservableObject {
 
         Task { [weak self, controlService] in
             do {
-                try await controlService.setEnabled(enabled, configURL: configURL)
-                self?.refresh()
+                try await controlService.setEnabled(enabled, serviceID: selectedService.id)
+                await self?.refreshUntilSettled(enabled: enabled)
             } catch {
                 let message = error.localizedDescription
                 self?.actionError = message
-                self?.configurationUI.showVPNCommandFailed(message)
+                self?.selectionUI.showVPNCommandFailed(message)
             }
             self?.actionInProgress = false
         }
@@ -114,6 +124,35 @@ final class VPNStatusStore: ObservableObject {
 
     func showLastActionError() {
         guard let actionError else { return }
-        configurationUI.showVPNCommandFailed(actionError)
+        selectionUI.showVPNCommandFailed(actionError)
+    }
+
+    private func loadSelection() {
+        guard let services = try? discovery.availableServices() else { return }
+
+        if let savedID = defaults.string(forKey: serviceIDKey),
+           let savedService = services.first(where: { $0.id == savedID }) {
+            selectedService = savedService
+            return
+        }
+
+        guard let legacyPath = defaults.string(forKey: legacyConfigPathKey) else { return }
+        let legacyName = URL(fileURLWithPath: legacyPath)
+            .deletingPathExtension()
+            .lastPathComponent
+        guard let matchingService = services.first(where: { $0.name == legacyName }) else { return }
+
+        selectedService = matchingService
+        defaults.set(matchingService.id, forKey: serviceIDKey)
+        defaults.removeObject(forKey: legacyConfigPathKey)
+    }
+
+    private func refreshUntilSettled(enabled: Bool) async {
+        for _ in 0..<40 {
+            refresh()
+            if enabled, case .up = state { return }
+            if !enabled, state == .down { return }
+            try? await Task.sleep(for: .milliseconds(250))
+        }
     }
 }

@@ -1,53 +1,44 @@
-import Darwin
 import Foundation
 
 struct VPNStatusService {
-    func currentStatus(configURL: URL?) -> VPNState {
-        guard let configURL else { return .notConfigured }
+    func currentStatus(serviceID: String?) -> VPNState {
+        guard let serviceID else { return .notConfigured }
+
+        let process = Process()
+        let outputPipe = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/scutil")
+        process.arguments = ["--nc", "status", serviceID]
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
 
         do {
-            let contents = try String(contentsOf: configURL, encoding: .utf8)
-            let tunnelAddresses = try WireGuardConfig.interfaceAddresses(in: contents)
-            let activeAddresses = try activeInterfaceAddresses()
-            let matches = tunnelAddresses.intersection(activeAddresses)
+            try process.run()
+            process.waitUntilExit()
+            let data = outputPipe.fileHandleForReading.readDataToEndOfFile()
+            let output = String(data: data, encoding: .utf8) ?? ""
+            let status = output.split(whereSeparator: \Character.isNewline).first.map(String.init) ?? ""
 
-            if let address = matches.sorted().first {
-                return .up(address: address)
+            switch status {
+            case "Connected": return .up(address: vpnAddress(in: output))
+            case "Disconnected": return .down
+            case "Connecting", "Disconnecting": return .checking
+            case "No service": return .unavailable(message: "The selected managed VPN no longer exists.")
+            default:
+                return .unavailable(message: status.isEmpty ? "Couldn’t read VPN status." : status)
             }
-
-            return .down
         } catch {
             return .unavailable(message: error.localizedDescription)
         }
     }
 
-    private func activeInterfaceAddresses() throws -> Set<String> {
-        var firstAddress: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&firstAddress) == 0 else {
-            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
-        }
-        defer { freeifaddrs(firstAddress) }
-
-        var addresses = Set<String>()
-        var current = firstAddress
-
-        while let interface = current?.pointee {
-            defer { current = interface.ifa_next }
-            guard let socketAddress = interface.ifa_addr else { continue }
-
-            let family = Int32(socketAddress.pointee.sa_family)
-            guard family == AF_INET || family == AF_INET6 else { continue }
-
-            var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-            let length: socklen_t = family == AF_INET
-                ? socklen_t(MemoryLayout<sockaddr_in>.size)
-                : socklen_t(MemoryLayout<sockaddr_in6>.size)
-
-            if getnameinfo(socketAddress, length, &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST) == 0 {
-                addresses.insert(String(cString: host).split(separator: "%", maxSplits: 1).first.map(String.init) ?? "")
-            }
-        }
-
-        return addresses
+    private func vpnAddress(in output: String) -> String? {
+        let pattern = #"Addresses\s*:\s*<array>\s*\{\s*\d+\s*:\s*([0-9A-Fa-f:.%]+)"#
+        guard let expression = try? NSRegularExpression(pattern: pattern),
+              let match = expression.firstMatch(
+                in: output,
+                range: NSRange(output.startIndex..., in: output)
+              ),
+              let addressRange = Range(match.range(at: 1), in: output) else { return nil }
+        return String(output[addressRange])
     }
 }

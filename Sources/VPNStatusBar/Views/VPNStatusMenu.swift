@@ -13,7 +13,9 @@ struct VPNStatusMenu: View {
             Text("Checking VPN…")
         case let .up(address):
             Label("VPN is up", systemImage: "checkmark.circle.fill")
-            Text(address)
+            if let address {
+                Text(address)
+            }
         case .down:
             Label("VPN is down", systemImage: "xmark.circle")
         case let .unavailable(message):
@@ -49,14 +51,14 @@ struct VPNStatusMenu: View {
 
         Divider()
 
-        if let configFileName = store.configFileName {
-            Label(shortMessage(configFileName), systemImage: "doc")
+        if let selectedServiceName = store.selectedServiceName {
+            Label(shortMessage(selectedServiceName), systemImage: "network")
         } else {
-            Label("No config selected", systemImage: "doc.badge.plus")
+            Label("No VPN selected", systemImage: "network")
         }
 
-        Button("Choose Config…") {
-            store.chooseConfiguration()
+        Button("Choose VPN…") {
+            store.chooseService()
         }
 
         Divider()
