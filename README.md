@@ -3,8 +3,14 @@
 <img src="Resources/AppIcon.png" alt="VPNStatusBar app icon" width="160">
 
 VPNStatusBar is a small macOS menu-bar app for monitoring and controlling a
-a macOS-managed VPN. It shows whether your VPN is connected and lets you turn
+macOS-managed VPN. It shows whether your VPN is connected and lets you turn
 it on or off without opening System Settings.
+
+## Demo
+
+![VPNStatusBar connecting and disconnecting a managed VPN](Resources/VPNStatusBarDemo.gif)
+
+[View the MP4 version](Resources/VPNStatusBarDemo.mp4)
 
 ## Features
 
